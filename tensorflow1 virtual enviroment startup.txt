@@ -1,0 +1,72 @@
+Startup instructions: 
+
+activate virtual enviroment:
+activate tensorflow1
+
+set PYTHONPATH enviroment variable:
+set PYTHONPATH=C:\tensorflow1\models;C:\tensorflow1\models\research;C:\tensorflow1\models\research\slim
+
+cd: 
+cd C:\tensorflow1\models\research\object_detection
+
+command to train
+python train.py --logtostderr --train_dir=training/ --pipeline_config_path=training/ssd_mobilenet_v2_coco.config
+
+export inference graph:
+python export_inference_graph.py --input_type image_tensor --pipeline_config_path training/ssd_mobilenet_v2_coco.config --trained_checkpoint_prefix training/model.ckpt-292032 --output_directory inference_graph
+view tensorboard (training progress):
+tensorboard --logdir=training
+web address:
+http://DESKTOP-4S7JSQP:6006/
+aa
+
+for tflite
+
+
+command to train:
+python train.py --logtostderr –train_dir=training/ --pipeline_config_path=training/ssd_mobilenet_v2_quantized_300x300_coco.config
+
+exporting inference for tflite:
+
+variables: for tflite 
+
+set CONFIG_FILE=C:\\tensorflow2\models\research\object_detection\training\ssd_mobilenet_v2_quantized_300x300_coco.config
+set CHECKPOINT_PATH=C:\\tensorflow2\models\research\object_detection\training\model.ckpt-301774
+set OUTPUT_DIR=C:\\tensorflow2\models\research\object_detection\TFLite_model
+
+varibles for old model: 
+
+set CONFIG_FILE=C:\\tensorflow2\models\research\object_detection\originaltraining\ssd_mobilenet_v2_coco.config
+set CHECKPOINT_PATH=C:\tensorflow2\models\research\object_detection\originaltraining\model.ckpt-366114
+set OUTPUT_DIR=C:\\tensorflow2\models\research\object_detection\TFLite_model
+
+export:
+python export_tflite_ssd_graph.py --pipeline_config_path=%CONFIG_FILE% --trained_checkpoint_prefix=%CHECKPOINT_PATH% --output_directory=%OUTPUT_DIR% --add_postprocessing_op=true
+
+create the optmized tflie model:
+
+activate tensorflow-build
+cd C:\tensorflow-build\tensorflow
+
+set OUTPUT_DIR=C:\\tensorflow2\models\research\object_detection\TFLite_model
+
+bazel run -c opt tensorflow/lite/toco:toco -- --input_file=%OUTPUT_DIR%/tflite_graph.pb --output_file=%OUTPUT_DIR%/detect.tflite --input_shapes=1,300,300,3 --input_arrays=normalized_input_image_tensor --output_arrays=TFLite_Detection_PostProcess,TFLite_Detection_PostProcess:1,TFLite_Detection_PostProcess:2,TFLite_Detection_PostProcess:3 --inference_type=QUANTIZED_UINT8 --mean_values=128 --std_values=128 --change_concat_input_ranges=false --allow_custom_ops --default_ranges_min= and --default_ranges_max=
+
+
+Run without edgeTPU:
+python TFLite_detection_webcam.py --modeldir=TFLite_model 
+
+run with edgeTPU: 
+python3 TFLite_detection_video.py --modeldir=Sample_TFLite_model --edgetpu
+
+
+bazel run -c opt tensorflow/lite/toco:toco --input_file=$OUTPUT_DIR/tflite_graph.pb --output_file=$OUTPUT_DIR/detect.tflite --input_shapes=1,300,300,3 --input_arrays=normalized_input_image_tensor --output_arrays=’TFLite_Detection_PostProcess’,’TFLite_Detection_PostProcess:1',’TFLite_Detection_PostProcess:2',’TFLite_Detection_PostProcess:3' --inference_type=FLOAT --allow_custom_ops
+
+
+
+experiemtn: 
+
+python export_tflite_ssd_graph.py --pipeline_config_path=training/ssd_mobilenet_v2_quantized_300x300_coco.config --trained_checkpoint_prefix=training/model.ckpt-155933 --output_directory=tflite --add_postprocessing_op=true
+
+
+tflite_convert --graph_def_file=TFLite_model/tflite_graph.pb --output_file=TFLite_model/detect.tflite --input_shapes=1,300,300,3 --input_arrays=normalized_input_image_tensor --output_arrays=TFLite_Detection_PostProcess,TFLite_Detection_PostProcess:1,TFLite_Detection_PostProcess:2,TFLite_Detection_PostProcess:3 --allow_custom_ops --inference_type=QUANTIZED_UINT8 --mean_values=128 --std_dev_values=127
